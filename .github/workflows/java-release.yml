@@ -1,0 +1,124 @@
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      java_runtime:
+        description: "Java runtime version to use"
+        required: false
+        default: 25
+        type: number
+      release_snapshot_as_draft:
+        description: "Whether to release snapshots as drafts"
+        required: false
+        default: false
+        type: boolean
+      git_cliff_config_path:
+        description: "Path to the git-cliff config file"
+        required: false
+        default: ".github/cliff.toml"
+        type: string
+      tag_name:
+        description: "Tag name to use for the release"
+        required: false
+        default: "${{ github.ref_name }}"
+        type: string
+    secrets:
+      HBOYD_GPG_KEY:
+        description: "Hboyd GPG key to sign the release"
+        required: false
+      HBOYD_GPG_PASSWORD:
+        description: "Hboyd Password for the GPG key"
+        required: false
+      HBOYD_SONATYPE_USERNAME:
+        description: "Hboyd Sonatype username"
+        required: false
+      HBOYD_SONATYPE_PASSWORD:
+        description: "Hboyd Sonatype password"
+        required: false
+      HBOYD_DEV_USERNAME:
+        description: "Hboyd Dev maven repo username"
+        required: false
+      HBOYD_DEV_PASSWORD:
+        description: "Hboyd Dev maven repo password"
+        required: false
+
+
+jobs:
+  release:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Setup Environment"
+        uses: "hboyd2003/github-ci/actions/java-env-setup@master"
+        with:
+          runtime_version: 25
+
+      - name: "Build with Gradle"
+        run: ./gradlew build
+
+      - name: "Upload Test Results"
+        if: "${{ always() }}" # Always run, even if the build fails
+        uses: "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f" # v7.0.0
+        with:
+          name: "test-results"
+          path: |
+            build/reports/
+            */build/reports/
+
+      - name: "Grab Version Details"
+        id: "grab_version"
+        run: |
+          VERSION=$(./gradlew -q printSemVer)
+          echo $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          
+          if [ "$(echo $VERSION | grep '\-SNAPSHOT')" ]; then
+            RELEASE=false
+          else
+            RELEASE=true
+          fi
+          
+          echo $RELEASE
+          echo "RELEASE=$RELEASE" >> $GITHUB_ENV
+        shell: bash
+
+      - name: "Create Local Version Tag"
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.grab_version.outputs.VERSION }}" -m "v${{ steps.grab_version.outputs.VERSION }}"
+        shell: bash
+
+      - name: "Generate changelog"
+        uses: "orhun/git-cliff-action@v4"
+        id: "build_changelog"
+        with:
+          config: ${{ inputs.git_cliff_config_path }}
+          args: --latest
+        env:
+          OUTPUT: /dev/null
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: "Print Changelog"
+        run: echo "${{ steps.build_changelog.outputs.content }}"
+        shell: bash
+
+      - name: "Publish"
+        run: ./gradlew publish
+        env:
+          ORG_GRADLE_PROJECT_hboydSigningKey: ${{ secrets.HBOYD_GPG_KEY }}
+          ORG_GRADLE_PROJECT_hboydSigningPassword: ${{ secrets.HBOYD_GPG_PASSWORD }}
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.HBOYD_SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.HBOYD_SONATYPE_PASSWORD }}
+          ORG_GRADLE_PROJECT_hboydDevUsername: ${{ secrets.HBOYD_DEV_USERNAME }}
+          ORG_GRADLE_PROJECT_hboydDevPassword: ${{ secrets.HBOYD_DEV_PASSWORD }}
+
+      - name: "Create GH Release"
+        uses: "softprops/action-gh-release@v2.5.0"
+        with:
+          body: ${{ steps.build_changelog.outputs.content  }}
+          draft: ${{ (steps.grab_version.outputs.RELEASE == 'false' && inputs.release_snapshot_as_draft) || steps.grab_version.outputs.RELEASE == 'true' }}
+          prerelease: ${{ steps.grab_version.outputs.RELEASE == 'false' }}
+          tag_name: ${{ inputs.tag_name }}
+          files: |
+            build/libs/*
