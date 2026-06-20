@@ -73,7 +73,7 @@ jobs:
             build/reports/
             */build/reports/
 
-      - name: "Grab Version Details"
+      - name: "Grab Version Details & Disable Further Dependency Graph Generation"
         id: "grab_version"
         run: |
           VERSION=$(./gradlew -q printVersionWithoutBuildMetadata)
@@ -93,6 +93,9 @@ jobs:
           
           echo CLIFF_ARGS=$CLIFF_ARGS
           echo "CLIFF_ARGS=$CLIFF_ARGS" >> $GITHUB_OUTPUT
+          
+          echo "GITHUB_DEPENDENCY_GRAPH_ENABLED=false" >> $GITHUB_ENV
+          export GITHUB_DEPENDENCY_GRAPH_ENABLED=false
         shell: bash
 
       - name: "Publish"
