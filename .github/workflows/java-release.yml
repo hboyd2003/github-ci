@@ -145,3 +145,15 @@ jobs:
           tag_name: ${{ inputs.tag_name }}
           files: |
             build/libs/*
+  upload-dependencies:
+    name: "Submit Dependency Graph"
+    if: always()
+    needs: "release"
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: "write"
+    steps:
+      - name: "Submit Dependency Graph"
+        uses: "gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c" # v5.0.2
+        with:
+          dependency-graph: "download-and-submit"
