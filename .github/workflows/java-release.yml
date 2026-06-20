@@ -13,6 +13,11 @@ on:
         required: false
         default: true
         type: boolean
+      is_gradle_plugin:
+        description: "Whether the project is a Gradle plugin"
+        required: false
+        default: false
+        type: boolean
       git_cliff_config_path:
         description: "Path to the git-cliff config file within the repo"
         required: false
@@ -98,8 +103,22 @@ jobs:
           export GITHUB_DEPENDENCY_GRAPH_ENABLED=false
         shell: bash
 
+      - name: "Determine Gradle Tasks"
+        id: "determine_gradle_tasks"
+        run: |
+          if [[ "${{ inputs.is_gradle_plugin }}" == "true" && "${{ steps.grab_version.outputs.RELEASE }}" == "true" ]]; then
+            GRADLE_TASKS="publish publishPlugins"
+          else
+            GRADLE_TASKS=publish
+          fi
+          
+          echo GRADLE_TASKS=$GRADLE_TASKS
+          echo "GRADLE_TASKS=$GRADLE_TASKS" >> $GITHUB_OUTPUT
+        shell: bash
+
+
       - name: "Publish"
-        run: ./gradlew publish
+        run: ./gradlew ${{ steps.determine_gradle_tasks.outputs.GRADLE_TASKS }}
         env:
           ORG_GRADLE_PROJECT_hboydSigningKeyId: ${{ secrets.HBOYD_GPG_KEY_ID }}
           ORG_GRADLE_PROJECT_hboydSigningKey: ${{ secrets.HBOYD_GPG_KEY }}
