@@ -1,0 +1,21 @@
+name: "Setup Java Environment"
+description: "Set up the build environment for a Java Gradle project"
+
+inputs:
+  git_cliff_config_path:
+    description: "Path to the git-cliff config file within the repo"
+    required: false
+    default: "${{ github.action_path }}/cliff.toml"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Generate changelog"
+      uses: "orhun/git-cliff-action@v4.8.0"
+      id: "generate_changelog"
+      with:
+        config: ${{ inputs.git_cliff_config_path }}
+        args: ${{ steps.grab_version.outputs.CLIFF_ARGS }}
+      env:
+        OUTPUT: ../CHANGELOG.md
+        GITHUB_REPO: ${{ github.repository }}

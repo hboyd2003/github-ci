@@ -16,7 +16,6 @@ on:
       git_cliff_config_path:
         description: "Path to the git-cliff config file within the repo"
         required: false
-        default: ".github/cliff.toml"
         type: string
       tag_name:
         description: "Tag name to tie the GitHub release to"
@@ -110,14 +109,10 @@ jobs:
           GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PLUGIN_PORTAL_API_SECRET }}
 
       - name: "Generate changelog"
-        uses: "orhun/git-cliff-action@v4.8.0"
+        uses: "hboyd2003/github-ci/actions/generate-change-log@master"
         id: "generate_changelog"
         with:
-          config: ${{ inputs.git_cliff_config_path }}
-          args: ${{ steps.grab_version.outputs.CLIFF_ARGS }}
-        env:
-          OUTPUT: ../CHANGELOG.md
-          GITHUB_REPO: ${{ github.repository }}
+          git_cliff_config_path: ${{ inputs.git_cliff_config_path }}
 
       - name: "Create GH Release"
         uses: "softprops/action-gh-release@v2.5.0"
