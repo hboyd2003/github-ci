@@ -82,7 +82,7 @@ jobs:
         id: "grab_version"
         run: |
           VERSION=$(./gradlew -q printVersionWithoutBuildMetadata)
-          echo VERSION= $VERSION
+          echo VERSION=$VERSION
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           
           if [ "$(echo $VERSION | grep '\-SNAPSHOT')" ]; then
@@ -139,6 +139,7 @@ jobs:
       - name: "Create GH Release"
         uses: "softprops/action-gh-release@v2.5.0"
         with:
+          name: "v${{ steps.grab_version.outputs.VERSION }}"
           body: ${{ steps.generate_changelog.outputs.content  }}
           draft: ${{ (steps.grab_version.outputs.RELEASE == 'false' && !inputs.release_snapshot_as_draft) || steps.grab_version.outputs.RELEASE == 'true' }}
           prerelease: ${{ steps.grab_version.outputs.RELEASE == 'false' }}
