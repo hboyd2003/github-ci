@@ -81,6 +81,8 @@ jobs:
       - name: "Grab Version Details & Disable Further Dependency Graph Generation"
         id: "grab_version"
         run: |
+          echo $(./gradlew -q printVersionContext)
+          
           VERSION=$(./gradlew -q printVersionWithoutBuildMetadata)
           echo VERSION=$VERSION
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
