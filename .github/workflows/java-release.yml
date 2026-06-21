@@ -116,7 +116,6 @@ jobs:
           echo "GRADLE_TASKS=$GRADLE_TASKS" >> $GITHUB_OUTPUT
         shell: bash
 
-
       - name: "Publish"
         run: ./gradlew ${{ steps.determine_gradle_tasks.outputs.GRADLE_TASKS }}
         env:
@@ -135,12 +134,13 @@ jobs:
         id: "generate_changelog"
         with:
           git_cliff_config_path: ${{ inputs.git_cliff_config_path }}
+          git_cliff_args: ${{ steps.grab_version.outputs.CLIFF_ARGS }}
 
       - name: "Create GH Release"
         uses: "softprops/action-gh-release@v2.5.0"
         with:
           name: "v${{ steps.grab_version.outputs.VERSION }}"
-          body: ${{ steps.generate_changelog.outputs.content  }}
+          body: ${{ steps.generate_changelog.outputs.changelog  }}
           draft: ${{ (steps.grab_version.outputs.RELEASE == 'false' && !inputs.release_snapshot_as_draft) || steps.grab_version.outputs.RELEASE == 'true' }}
           prerelease: ${{ steps.grab_version.outputs.RELEASE == 'false' }}
           tag_name: ${{ inputs.tag_name }}

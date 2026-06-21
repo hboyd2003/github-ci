@@ -6,16 +6,33 @@ inputs:
     description: "Path to the git-cliff config file within the repo"
     required: false
     default: "${{ github.action_path }}/cliff.toml"
+  git_cliff_args:
+    description: "Arguments to pass to git-cliff"
+    required: false
+    default: ""
+outputs:
+  changelog:
+    description: "The generated changelog"
+    value: ${{ steps.generate_changelog.outputs.content }}
 
 runs:
   using: "composite"
   steps:
+    - name: "Determine git cliff config path"
+      id: "determine_cliff_config_path"
+      run: |
+        if [[ -z "${{ inputs.git_cliff_config_path }}" ]]; then
+          echo "GIT_CLIFF_CONFIG_PATH=${{ github.action_path }}/cliff.toml" >> $GITHUB_OUTPUT
+        else
+          echo "GIT_CLIFF_CONFIG_PATH=${{ inputs.git_cliff_config_path }}" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
     - name: "Generate changelog"
       uses: "orhun/git-cliff-action@v4.8.0"
       id: "generate_changelog"
       with:
-        config: ${{ inputs.git_cliff_config_path }}
-        args: ${{ steps.grab_version.outputs.CLIFF_ARGS }}
+        config: ${{ steps.determine_cliff_config_path.outputs.GIT_CLIFF_CONFIG_PATH }}
+        args: ${{ inputs.git_cliff_args }}
       env:
         OUTPUT: ../CHANGELOG.md
         GITHUB_REPO: ${{ github.repository }}
