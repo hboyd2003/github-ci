@@ -2,7 +2,6 @@ name: Tag Snapshot
 on:
   workflow_call:
 
-
 concurrency:
   cancel-in-progress: true
   group: tag-snapshot

@@ -66,8 +66,29 @@ jobs:
         with:
           runtime_version: 25
 
+      - name: "Determine Gradle Tasks & Args"
+        id: "determine_gradle_tasks"
+        run: |
+          if [[ "${{ inputs.is_gradle_plugin }}" == "true" && "${{ steps.grab_version.outputs.RELEASE }}" == "true" ]]; then
+            GRADLE_PUBLISH_TASKS="publish publishPlugins"
+          else
+            GRADLE_PUBLISH_TASKS=publish
+          fi
+          
+          if [[ "${{ runner.debug }}" == "1" ]]; then
+            GRADLE_DEBUG_ARGS="--stacktrace"
+          else
+            GRADLE_DEBUG_ARGS=""
+          fi
+          
+          echo GRADLE_DEBUG_ARGS=$GRADLE_DEBUG_ARGS
+          echo "GRADLE_DEBUG_ARGS=$GRADLE_DEBUG_ARGS" >> $GITHUB_OUTPUT
+          echo GRADLE_PUBLISH_TASKS=$GRADLE_PUBLISH_TASKS
+          echo "GRADLE_PUBLISH_TASKS=$GRADLE_PUBLISH_TASKS" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: "Build with Gradle"
-        run: ./gradlew build
+        run: ./gradlew build ${{ steps.determine_gradle_tasks.outputs.GRADLE_DEBUG_TASK }}
 
       - name: "Upload Test Results"
         if: "${{ always() }}" # Run even after build failure
@@ -105,21 +126,8 @@ jobs:
           export GITHUB_DEPENDENCY_GRAPH_ENABLED=false
         shell: bash
 
-      - name: "Determine Gradle Tasks"
-        id: "determine_gradle_tasks"
-        run: |
-          if [[ "${{ inputs.is_gradle_plugin }}" == "true" && "${{ steps.grab_version.outputs.RELEASE }}" == "true" ]]; then
-            GRADLE_TASKS="publish publishPlugins"
-          else
-            GRADLE_TASKS=publish
-          fi
-          
-          echo GRADLE_TASKS=$GRADLE_TASKS
-          echo "GRADLE_TASKS=$GRADLE_TASKS" >> $GITHUB_OUTPUT
-        shell: bash
-
       - name: "Publish"
-        run: ./gradlew ${{ steps.determine_gradle_tasks.outputs.GRADLE_TASKS }}
+        run: ./gradlew ${{ steps.determine_gradle_tasks.outputs.GRADLE_PUBLISH_TASKS }} ${{ steps.determine_gradle_tasks.outputs.GRADLE_DEBUG_TASK }}
         env:
           ORG_GRADLE_PROJECT_hboydSigningKeyId: ${{ secrets.HBOYD_GPG_KEY_ID }}
           ORG_GRADLE_PROJECT_hboydSigningKey: ${{ secrets.HBOYD_GPG_KEY }}
