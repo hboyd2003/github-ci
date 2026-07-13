@@ -47,6 +47,9 @@ on:
       MODRINTH_TOKEN:
         description: "Modrinth token to publish using"
         required: false
+      HANGAR_KEY:
+        description: "Hangar key to publish using"
+        required: false
       GRADLE_PLUGIN_PORTAL_API_KEY:
         description: "Gradle Plugin Portal API key"
         required: false
@@ -88,6 +91,8 @@ jobs:
               gradle_tasks+=" publishPlugins"
             elif [[ $line =~ ^modrinth([[:space:]]+-[[:space:]].*)?$ ]]; then
               gradle_tasks+=" modrinth modrinthSyncBody"
+            elif [[ $line =~ ^publishAllPublicationsToHangar([[:space:]]+-[[:space:]].*)?$ ]]; then
+              gradle_tasks+=" publishAllPublicationsToHangar"
             fi
           done < <(./gradlew tasks -q --console=plain)
       
@@ -154,6 +159,7 @@ jobs:
           GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PLUGIN_PORTAL_API_KEY }}
           GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PLUGIN_PORTAL_API_SECRET }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          HANGAR_KEY: ${{ secrets.HANGAR_KEY }}
           CHANGELOG: ${{ steps.generate_changelog.outputs.changelog  }}
 
       - name: "Create GH Release"
