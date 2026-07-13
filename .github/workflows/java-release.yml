@@ -44,6 +44,9 @@ on:
       HBOYD_DEV_PASSWORD:
         description: "Hboyd Dev maven repo password"
         required: false
+      MODRINTH_TOKEN:
+        description: "Modrinth token to publish using"
+        required: false
       GRADLE_PLUGIN_PORTAL_API_KEY:
         description: "Gradle Plugin Portal API key"
         required: false
@@ -83,6 +86,8 @@ jobs:
             if [[ $line =~ ^publishPlugins([[:space:]]+-[[:space:]].*)?$ \
                     && "${{ steps.grab_version.outputs.RELEASE }}" == "true" ]]; then
               gradle_tasks+=" publishPlugins"
+            elif [[ $line =~ ^modrinth([[:space:]]+-[[:space:]].*)?$ ]]; then
+              gradle_tasks+=" modrinth modrinthSyncBody"
             fi
           done < <(./gradlew tasks -q --console=plain)
       
@@ -148,13 +153,8 @@ jobs:
           ORG_GRADLE_PROJECT_hboydDevPassword: ${{ secrets.HBOYD_DEV_PASSWORD }}
           GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PLUGIN_PORTAL_API_KEY }}
           GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PLUGIN_PORTAL_API_SECRET }}
-
-      - name: "Generate changelog"
-        uses: "hboyd2003/github-ci/actions/generate-change-log@master"
-        id: "generate_changelog"
-        with:
-          git_cliff_config_path: ${{ inputs.git_cliff_config_path }}
-          git_cliff_args: ${{ steps.grab_version.outputs.CLIFF_ARGS }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CHANGELOG: ${{ steps.generate_changelog.outputs.changelog  }}
 
       - name: "Create GH Release"
         uses: "softprops/action-gh-release@v2.5.0"
