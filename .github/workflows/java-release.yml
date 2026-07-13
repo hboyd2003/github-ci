@@ -13,11 +13,6 @@ on:
         required: false
         default: true
         type: boolean
-      is_gradle_plugin:
-        description: "Whether the project is a Gradle plugin"
-        required: false
-        default: false
-        type: boolean
       git_cliff_config_path:
         description: "Path to the git-cliff config file within the repo"
         required: false
@@ -69,12 +64,6 @@ jobs:
       - name: "Determine Gradle Tasks & Args"
         id: "determine_gradle_tasks"
         run: |
-          if [[ "${{ inputs.is_gradle_plugin }}" == "true" && "${{ steps.grab_version.outputs.RELEASE }}" == "true" ]]; then
-            GRADLE_PUBLISH_TASKS="publish publishPlugins"
-          else
-            GRADLE_PUBLISH_TASKS=publish
-          fi
-          
           if [[ "${{ runner.debug }}" == "1" ]]; then
             GRADLE_DEBUG_ARGS="--stacktrace"
           else
@@ -83,8 +72,22 @@ jobs:
           
           echo GRADLE_DEBUG_ARGS=$GRADLE_DEBUG_ARGS
           echo "GRADLE_DEBUG_ARGS=$GRADLE_DEBUG_ARGS" >> $GITHUB_OUTPUT
-          echo GRADLE_PUBLISH_TASKS=$GRADLE_PUBLISH_TASKS
-          echo "GRADLE_PUBLISH_TASKS=$GRADLE_PUBLISH_TASKS" >> $GITHUB_OUTPUT
+          
+          # Determine which tasks to run by examining the available tasks
+          gradle_tasks="publish"
+          while IFS= read -r line; do
+            if [[ "${{ runner.debug }}" == "1" ]]; then
+              echo "Checking task line: $line"
+            fi
+          
+            if [[ $line =~ ^publishPlugins([[:space:]]+-[[:space:]].*)?$ \
+                    && "${{ steps.grab_version.outputs.RELEASE }}" == "true" ]]; then
+              gradle_tasks+=" publishPlugins"
+            fi
+          done < <(./gradlew tasks -q --console=plain)
+      
+          echo GRADLE_TASKS=$gradle_tasks
+          echo "GRADLE_TASKS=$gradle_tasks" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: "Build with Gradle"
@@ -126,8 +129,15 @@ jobs:
           export GITHUB_DEPENDENCY_GRAPH_ENABLED=false
         shell: bash
 
+      - name: "Generate changelog"
+        uses: "hboyd2003/github-ci/actions/generate-change-log@master"
+        id: "generate_changelog"
+        with:
+          git_cliff_config_path: ${{ inputs.git_cliff_config_path }}
+          git_cliff_args: ${{ steps.grab_version.outputs.CLIFF_ARGS }}
+
       - name: "Publish"
-        run: ./gradlew ${{ steps.determine_gradle_tasks.outputs.GRADLE_PUBLISH_TASKS }} ${{ steps.determine_gradle_tasks.outputs.GRADLE_DEBUG_TASK }}
+        run: ./gradlew ${{ steps.determine_gradle_tasks.outputs.GRADLE_TASKS }} ${{ steps.determine_gradle_tasks.outputs.GRADLE_DEBUG_TASK }}
         env:
           ORG_GRADLE_PROJECT_hboydSigningKeyId: ${{ secrets.HBOYD_GPG_KEY_ID }}
           ORG_GRADLE_PROJECT_hboydSigningKey: ${{ secrets.HBOYD_GPG_KEY }}
@@ -157,6 +167,7 @@ jobs:
           files: |
             */build/libs/*
             build/libs/*
+
   upload-dependencies:
     name: "Submit Dependency Graph"
     if: always()
