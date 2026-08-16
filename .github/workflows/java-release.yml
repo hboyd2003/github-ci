@@ -101,7 +101,7 @@ jobs:
         shell: bash
 
       - name: "Build with Gradle"
-        run: ./gradlew build ${{ steps.determine_gradle_tasks.outputs.GRADLE_DEBUG_TASK }}
+        run: ./gradlew build ${{ steps.determine_gradle_tasks.outputs.GRADLE_DEBUG_ARGS }}
 
       - name: "Upload Test Results"
         if: "${{ always() }}" # Run even after build failure
