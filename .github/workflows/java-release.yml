@@ -67,8 +67,8 @@ jobs:
         with:
           runtime_version: 25
 
-      - name: "Determine Gradle Tasks & Args"
-        id: "determine_gradle_tasks"
+      - name: "Generate Gradle Debug Args"
+        id: "gradle_debug_args"
         run: |
           if [[ "${{ runner.debug }}" == "1" ]]; then
             GRADLE_DEBUG_ARGS="--stacktrace"
@@ -78,26 +78,6 @@ jobs:
           
           echo GRADLE_DEBUG_ARGS=$GRADLE_DEBUG_ARGS
           echo "GRADLE_DEBUG_ARGS=$GRADLE_DEBUG_ARGS" >> $GITHUB_OUTPUT
-          
-          # Determine which tasks to run by examining the available tasks
-          gradle_tasks="publish"
-          while IFS= read -r line; do
-            if [[ "${{ runner.debug }}" == "1" ]]; then
-              echo "Checking task line: $line"
-            fi
-          
-            if [[ $line =~ ^publishPlugins([[:space:]]+-[[:space:]].*)?$ \
-                    && "${{ steps.grab_version.outputs.RELEASE }}" == "true" ]]; then
-              gradle_tasks+=" publishPlugins"
-            elif [[ $line =~ ^modrinth([[:space:]]+-[[:space:]].*)?$ ]]; then
-              gradle_tasks+=" modrinth modrinthSyncBody"
-            elif [[ $line =~ ^publishAllPublicationsToHangar([[:space:]]+-[[:space:]].*)?$ ]]; then
-              gradle_tasks+=" publishAllPublicationsToHangar"
-            fi
-          done < <(./gradlew tasks -q --console=plain)
-      
-          echo GRADLE_TASKS=$gradle_tasks
-          echo "GRADLE_TASKS=$gradle_tasks" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: "Build with Gradle"
@@ -139,6 +119,29 @@ jobs:
           export GITHUB_DEPENDENCY_GRAPH_ENABLED=false
         shell: bash
 
+      - name: "Determine Gradle Publish Tasks"
+        id: "gradle_publish_tasks"
+        run: |
+          # Determine which tasks to run by examining the available tasks
+          gradle_tasks="publish"
+          while IFS= read -r line; do
+            if [[ "${{ runner.debug }}" == "1" ]]; then
+              echo "Checking task line: $line"
+            fi
+          
+            if [[ $line =~ ^publishPlugins([[:space:]]+-[[:space:]].*)?$ \
+                    && "${{ steps.grab_version.outputs.RELEASE }}" == "true" ]]; then
+              gradle_tasks+=" publishPlugins"
+            elif [[ $line =~ ^modrinth([[:space:]]+-[[:space:]].*)?$ ]]; then
+              gradle_tasks+=" modrinth modrinthSyncBody"
+            elif [[ $line =~ ^publishAllPublicationsToHangar([[:space:]]+-[[:space:]].*)?$ ]]; then
+              gradle_tasks+=" publishAllPublicationsToHangar"
+            fi
+          done < <(./gradlew tasks -q --console=plain)
+          
+          echo GRADLE_TASKS=$gradle_tasks
+          echo "GRADLE_TASKS=$gradle_tasks" >> $GITHUB_OUTPUT
+
       - name: "Generate changelog"
         uses: "hboyd2003/github-ci/actions/generate-change-log@master"
         id: "generate_changelog"
@@ -147,7 +150,7 @@ jobs:
           git_cliff_args: ${{ steps.grab_version.outputs.CLIFF_ARGS }}
 
       - name: "Publish"
-        run: ./gradlew ${{ steps.determine_gradle_tasks.outputs.GRADLE_TASKS }} ${{ steps.determine_gradle_tasks.outputs.GRADLE_DEBUG_TASK }}
+        run: ./gradlew ${{ steps.gradle_publish_tasks.outputs.GRADLE_TASKS }} ${{ steps.gradle_debug_args.outputs.GRADLE_DEBUG_TASK }}
         env:
           ORG_GRADLE_PROJECT_hboydSigningKeyId: ${{ secrets.HBOYD_GPG_KEY_ID }}
           ORG_GRADLE_PROJECT_hboydSigningKey: ${{ secrets.HBOYD_GPG_KEY }}
