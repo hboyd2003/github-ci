@@ -26,5 +26,5 @@ jobs:
         run: |
           git tag -d snapshot
           git push origin --delete snapshot
-          git tag -a snapshot -m "Snapshot"
+          git tag snapshot
           git push origin refs/tags/snapshot --force
