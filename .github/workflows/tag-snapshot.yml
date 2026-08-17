@@ -24,7 +24,10 @@ jobs:
 
       - name: "Tag Snapshot"
         run: |
-          git tag -d snapshot
-          git push origin --delete snapshot
+          if [[ -n "$(git tag -l 'snapshot')" ]]; then
+              git tag -d snapshot
+              git push origin --delete snapshot
+          fi
+
           git tag snapshot
           git push origin refs/tags/snapshot --force
