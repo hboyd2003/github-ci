@@ -1,6 +1,11 @@
 name: Tag Snapshot
 on:
   workflow_call:
+    inputs:
+      tag-name:
+        type: string
+        default: snapshot
+        description: The name of the tag to use
 
 concurrency:
   cancel-in-progress: true
@@ -24,10 +29,10 @@ jobs:
 
       - name: "Tag Snapshot"
         run: |
-          if [[ -n "$(git tag -l 'snapshot')" ]]; then
-              git tag -d snapshot
-              git push origin --delete snapshot
+          if [[ -n "$(git tag -l '${{ inputs.tag-name }}')" ]]; then
+              git tag -d ${{ inputs.tag-name }}
+              git push origin --delete ${{ inputs.tag-name }}
           fi
 
-          git tag snapshot
-          git push origin refs/tags/snapshot --force
+          git tag ${{ inputs.tag-name }}
+          git push origin refs/tags/${{ inputs.tag-name }} --force
