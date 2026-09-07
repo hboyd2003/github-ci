@@ -165,6 +165,19 @@ jobs:
           HANGAR_KEY: ${{ secrets.HANGAR_KEY }}
           CHANGELOG: ${{ steps.generate_changelog.outputs.changelog  }}
 
+      - name: "Collect Release Artifacts"
+        run: |
+          mkdir artifacts
+          if [ -d "build/libs/" ]; then
+             cp build/libs/* artifacts
+          fi
+          shopt -s extglob
+          for file in !(build-logic)/build/libs/*; do
+            if [ -e "$file" ]; then
+              cp "$file" artifacts
+            fi
+          done
+
       - name: "Create GH Release"
         uses: "softprops/action-gh-release@v2.5.0"
         with:
@@ -174,8 +187,7 @@ jobs:
           prerelease: ${{ steps.grab_version.outputs.RELEASE == 'false' }}
           tag_name: ${{ inputs.tag_name }}
           files: |
-            */build/libs/*
-            build/libs/*
+            artifacts/*
 
   upload-dependencies:
     name: "Submit Dependency Graph"
