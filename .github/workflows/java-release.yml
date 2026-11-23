@@ -81,7 +81,7 @@ jobs:
         shell: bash
 
       - name: "Build with Gradle"
-        run: ./gradlew build ${{ steps.determine_gradle_tasks.outputs.GRADLE_DEBUG_ARGS }}
+        run: ./gradlew build ${{ steps.gradle_debug_args.outputs.GRADLE_DEBUG_ARGS }}
 
       - name: "Upload Test Results"
         if: "${{ always() }}" # Run even after build failure
@@ -150,7 +150,7 @@ jobs:
           git_cliff_args: ${{ steps.grab_version.outputs.CLIFF_ARGS }}
 
       - name: "Publish"
-        run: ./gradlew ${{ steps.gradle_publish_tasks.outputs.GRADLE_TASKS }} ${{ steps.gradle_debug_args.outputs.GRADLE_DEBUG_TASK }}
+        run: ./gradlew ${{ steps.gradle_publish_tasks.outputs.GRADLE_TASKS }} ${{ steps.gradle_debug_args.outputs.GRADLE_DEBUG_ARGS }}
         env:
           ORG_GRADLE_PROJECT_hboydSigningKeyId: ${{ secrets.HBOYD_GPG_KEY_ID }}
           ORG_GRADLE_PROJECT_hboydSigningKey: ${{ secrets.HBOYD_GPG_KEY }}
