@@ -167,16 +167,12 @@ jobs:
 
       - name: "Collect Release Artifacts"
         run: |
-          mkdir artifacts
-          if [ -d "build/libs/" ]; then
-             cp build/libs/* artifacts
-          fi
-          shopt -s extglob
-          for file in !(build-logic)/build/libs/*; do
-            if [ -e "$file" ]; then
-              cp "$file" artifacts
-            fi
-          done
+          mkdir -p artifacts
+          find . \
+            \( -name .git -o -name artifacts -o -name build-logic -o -name buildSrc \) -prune \
+            -o -type f -path '*/build/libs/*' \
+            -exec cp -t artifacts {} +
+        shell: bash
 
       - name: "Create GH Release"
         uses: "softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3" # v3.0.4
