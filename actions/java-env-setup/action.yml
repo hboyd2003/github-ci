@@ -28,7 +28,6 @@ runs:
       uses: "gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c" # v6.4.1
       with:
         dependency-graph: "generate-and-upload"
-        cache-read-only: "${{ (steps.branch-name.outputs.match == '' || github.event_name == 'pull_request') && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/') }}"
     - name: "Allow Gradle to be executed"
       run: "chmod +x ./gradlew"
       shell: bash
