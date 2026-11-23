@@ -28,7 +28,7 @@ runs:
         fi
       shell: bash
     - name: "Generate changelog"
-      uses: "orhun/git-cliff-action@v4.8.0"
+      uses: "orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff" # v4.9.1
       id: "generate_changelog"
       with:
         config: ${{ steps.determine_cliff_config_path.outputs.GIT_CLIFF_CONFIG_PATH }}
