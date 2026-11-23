@@ -61,6 +61,8 @@ on:
 jobs:
   release:
     runs-on: "ubuntu-latest"
+    permissions:
+      contents: "write" # Create GitHub releases
     steps:
       - name: "Setup Environment"
         uses: "hboyd2003/github-ci/actions/java-env-setup@master"
