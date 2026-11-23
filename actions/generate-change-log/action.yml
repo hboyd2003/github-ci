@@ -36,3 +36,4 @@ runs:
       env:
         OUTPUT: ../CHANGELOG.md
         GITHUB_REPO: ${{ github.repository }}
+        GITHUB_TOKEN: ${{ github.token }}
