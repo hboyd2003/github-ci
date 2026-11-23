@@ -65,7 +65,7 @@ jobs:
       - name: "Setup Environment"
         uses: "hboyd2003/github-ci/actions/java-env-setup@master"
         with:
-          runtime_version: 25
+          runtime_version: ${{ inputs.java_runtime }}
 
       - name: "Generate Gradle Debug Args"
         id: "gradle_debug_args"
