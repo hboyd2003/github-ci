@@ -183,7 +183,7 @@ jobs:
         with:
           name: "v${{ steps.grab_version.outputs.VERSION }}"
           body: ${{ steps.generate_changelog.outputs.changelog  }}
-          draft: ${{ (steps.grab_version.outputs.RELEASE == 'false' && !inputs.release_snapshot_as_draft) || steps.grab_version.outputs.RELEASE == 'true' }}
+          draft: ${{ steps.grab_version.outputs.RELEASE == 'true' || inputs.release_snapshot_as_draft }}
           prerelease: ${{ steps.grab_version.outputs.RELEASE == 'false' }}
           tag_name: ${{ inputs.tag_name }}
           files: |
