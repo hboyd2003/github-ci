@@ -1,0 +1,102 @@
+name: "Workflow Release"
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version component to bump"
+        required: true
+        type: choice
+        options: ["patch", "minor", "major"]
+
+concurrency:
+  group: "release"
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: "write" # Push tags and create GitHub releases
+    steps:
+      - name: "Require master"
+        if: "${{ github.ref != 'refs/heads/master' }}"
+        run: |
+          echo "::error::Releases can only be made from master, not ${{ github.ref }}"
+          exit 1
+        shell: bash
+
+      - name: "Checkout"
+        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: "Configure Git"
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        shell: bash
+
+      - name: "Determine Version"
+        id: "version"
+        run: |
+          previous=$(git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)
+
+          if [[ -z "$previous" ]]; then
+            version=1.0.0
+            range=
+          else
+            range="$previous^..HEAD"
+            if [[ -z "$(git rev-list "$range")" ]]; then
+              echo "::error::No commits since $previous"
+              exit 1
+            fi
+
+            IFS=. read -r major minor patch <<< "${previous#v}"
+            case $BUMP in
+              major) version=$((major + 1)).0.0 ;;
+              minor) version=$major.$((minor + 1)).0 ;;
+              patch) version=$major.$minor.$((patch + 1)) ;;
+              *) echo "::error::Unknown bump '$BUMP'"; exit 1 ;;
+            esac
+          fi
+
+          echo "Releasing v$version (previous: ${previous:-none})"
+          {
+            echo "version=$version"
+            echo "tag=v$version"
+            echo "major_tag=v${version%%.*}"
+            echo "range=$range"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          BUMP: ${{ inputs.bump }}
+        shell: bash
+
+      - name: "Generate Changelog"
+        id: "changelog"
+        uses: "./actions/generate-change-log"
+        with:
+          git_cliff_args: "--tag ${{ steps.version.outputs.tag }} --strip header ${{ steps.version.outputs.range }}"
+
+      - name: "Create Release Commit & Tags"
+        run: |
+          .github/scripts/pin-repo-refs.sh "$TAG"
+          git commit --all --allow-empty --message "chore(release): $TAG"
+          git tag --annotate "$TAG" --message "$TAG"
+          git tag --force "$MAJOR_TAG"
+
+          git push origin "refs/tags/$TAG"
+          git push --force origin "refs/tags/$MAJOR_TAG"
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          MAJOR_TAG: ${{ steps.version.outputs.major_tag }}
+        shell: bash
+
+      - name: "Create GH Release"
+        uses: "softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3" # v3.0.4
+        with:
+          name: ${{ steps.version.outputs.tag }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          make_latest: "true"
