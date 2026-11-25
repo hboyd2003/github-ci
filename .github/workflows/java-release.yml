@@ -22,6 +22,10 @@ on:
         required: false
         default: "${{ github.ref_name }}"
         type: string
+      additional_release_paths:
+        description: "Additional files, directories or glob patterns to attach to the GitHub release, one per line. Directories are zipped"
+        required: false
+        type: string
     secrets:
       HBOYD_GPG_KEY_ID:
         description: "GPG Key ID to sign artifacts with for Hboyd projects"
@@ -175,6 +179,13 @@ jobs:
             -o -type f -path '*/build/libs/*' \
             -exec cp -t artifacts {} +
         shell: bash
+
+      - name: "Collect Additional Release Files"
+        if: "${{ inputs.additional_release_paths != '' }}"
+        uses: "hboyd2003/github-ci/actions/collect-release-files@master"
+        with:
+          paths: ${{ inputs.additional_release_paths }}
+          destination: "artifacts"
 
       - name: "Create GH Release"
         uses: "softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3" # v3.0.4
