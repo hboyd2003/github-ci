@@ -1,0 +1,21 @@
+name: "Collect Release Files"
+description: "Copy files, directories or glob patterns into a directory for attaching to a GitHub release. Directories are zipped separately"
+
+inputs:
+  paths:
+    description: "Files, directories or glob patterns to collect, one per line"
+    required: true
+  destination:
+    description: "Directory to collect the files into"
+    required: false
+    default: "artifacts"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Collect release files"
+      run: '"$GITHUB_ACTION_PATH/collect-release-files.sh" "$DESTINATION"'
+      env:
+        RELEASE_PATHS: ${{ inputs.paths }}
+        DESTINATION: ${{ inputs.destination }}
+      shell: bash
