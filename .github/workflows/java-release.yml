@@ -69,7 +69,7 @@ jobs:
       contents: "write" # Create GitHub releases
     steps:
       - name: "Setup Environment"
-        uses: "hboyd2003/github-ci/actions/java-env-setup@master"
+        uses: "hboyd2003/github-ci/actions/java-env-setup@v1.0.0"
         with:
           runtime_version: ${{ inputs.java_runtime }}
 
@@ -149,7 +149,7 @@ jobs:
           echo "GRADLE_TASKS=$gradle_tasks" >> $GITHUB_OUTPUT
 
       - name: "Generate changelog"
-        uses: "hboyd2003/github-ci/actions/generate-change-log@master"
+        uses: "hboyd2003/github-ci/actions/generate-change-log@v1.0.0"
         id: "generate_changelog"
         with:
           git_cliff_config_path: ${{ inputs.git_cliff_config_path }}
@@ -182,7 +182,7 @@ jobs:
 
       - name: "Collect Additional Release Files"
         if: "${{ inputs.additional_release_paths != '' }}"
-        uses: "hboyd2003/github-ci/actions/collect-release-files@master"
+        uses: "hboyd2003/github-ci/actions/collect-release-files@v1.0.0"
         with:
           paths: ${{ inputs.additional_release_paths }}
           destination: "artifacts"
